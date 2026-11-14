@@ -92,5 +92,25 @@ class Database:
             raise
 
 
+    @staticmethod
+    @contextmanager
+    def read_transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
+        """只读事务：WAL 模式下整个事务看到同一数据库快照。
+
+        用于多表/多站一致性读（如串线诊断），保证一次诊断的所有
+        数据来自同一快照，不会读到写入中途的状态。
+        """
+        conn.execute("BEGIN")
+        try:
+            yield conn
+            conn.execute("COMMIT")
+        except BaseException:
+            try:
+                conn.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+
+
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")

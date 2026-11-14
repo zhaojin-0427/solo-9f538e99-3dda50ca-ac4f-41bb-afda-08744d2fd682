@@ -14,6 +14,9 @@ HOURS_PER_DAY = 24
 # 单批最多接收的记录数，避免一次事务过大。
 MAX_BATCH_RECORDS = 1000
 
+# 串线诊断：候选分界前后各自需要的最少共同有效小时数。
+MIN_SEGMENT_HOURS = 6
+
 # 输入中的 date/hour 表示北京时间（Asia/Shanghai）下的观测日期与小时。
 BEIJING_TIMEZONE = "Asia/Shanghai"
 

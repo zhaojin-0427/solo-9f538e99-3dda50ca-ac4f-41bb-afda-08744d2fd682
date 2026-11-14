@@ -7,7 +7,14 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from .models import BatchRequest, BatchResult, ConflictResponse, DailyReport
+from .models import (
+    BatchRequest,
+    BatchResult,
+    ConflictResponse,
+    CrossedLinesRequest,
+    CrossedLinesResponse,
+    DailyReport,
+)
 from .service import ReadingService, RevisionConflictError
 
 logger = logging.getLogger(__name__)
@@ -79,3 +86,27 @@ def get_daily_report(
     if not station_id:
         raise HTTPException(status_code=422, detail="station_id must not be blank")
     return service.daily_report(station_id, date)
+
+
+@router.post(
+    "/api/v1/diagnostics/crossed-lines",
+    response_model=CrossedLinesResponse,
+    status_code=200,
+    summary="串线诊断：两座疑似站的 PM2.5 小时值是否在当日被接反",
+    responses={
+        422: {"description": "请求体校验失败（四站不互异、门槛非正数、日期非法等）。"},
+    },
+)
+def diagnose_crossed_lines(
+    payload: CrossedLinesRequest,
+    service: ReadingService = Depends(get_service),
+) -> CrossedLinesResponse:
+    """对比两座疑似站与各自同址参照站，定位可能的串线起点。
+
+    * 每站每小时只取最高修订号的有效读数，只在四站共同有值的小时计算误差；
+    * 候选分界前后各至少 6 个共同小时，且前段原配对、后段互换配对的
+      误差优势都大于 ``threshold`` 时提示疑似串线；
+    * 缺测使起点无法唯一确定时只返回可能时段；
+    * 一次诊断读取同一数据库快照，不做缓存，补报/撤回后重查即反映新证据。
+    """
+    return service.diagnose_crossed_lines(payload)

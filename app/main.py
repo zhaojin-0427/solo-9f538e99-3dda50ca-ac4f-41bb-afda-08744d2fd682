@@ -58,7 +58,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
         description=(
             "接收站点 PM2.5 小时值补报、校准修订与撤回，并按北京时间日期查询日均值。\n\n"
-            "修订语义：每小时以最大 revision 为准；同号同内容幂等；同号不同内容整批 409。"
+            "修订语义：每小时以最大 revision 为准；同号同内容幂等；同号不同内容整批 409。\n\n"
+            "串线诊断：POST /api/v1/diagnostics/crossed-lines 对比两座疑似站与各自同址"
+            "参照站的小时值，定位网关维护后可能的接反起点。"
         ),
     )
     app.state.database = database
